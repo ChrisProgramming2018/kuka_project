@@ -38,7 +38,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--env-name', default="kuka_block_grasping-v0", type=str, help='Name of a environment (set it to any Continous environment you want')
     parser.add_argument('--seed', default=2, type=int, help='Random seed')
-    parser.add_argument('--start_timesteps', default=1e3, type=int)
+    parser.add_argument('--start_timesteps', default=600, type=int)
     parser.add_argument('--eval_freq', default=1e4, type=int)  # How often the evaluation step is performed (after how many timesteps)
     parser.add_argument('--max_timesteps', default=3.5e5, type=int)               # Total number of iterations/timesteps
     parser.add_argument('--buffer_size', default=1e5, type=int)               # 
@@ -46,7 +46,7 @@ if __name__ == "__main__":
     parser.add_argument('--lr_alpha', default=3e-4, type=float)
     parser.add_argument('--lr_actor', default=1e-4, type=float)      # Exploration noise - STD value of exploration Gaussian noise
     parser.add_argument('--lr_critic', default=1e-4, type=float)      # Exploration noise - STD value of exploration Gaussian noise
-    parser.add_argument('--lr_decoder', default=1e-4, type=float)      # Divide by 5
+    parser.add_argument('--lr_encoder', default=1e-4, type=float)      # Divide by 5
     parser.add_argument('--batch_size', default= 512, type=int)      # Size of the batch
     parser.add_argument('--discount', default=0.99, type=float)      # Discount factor gamma, used in the calculation of the total discounted reward
     parser.add_argument('--tau', default=0.005, type= float)        # Target network update rate

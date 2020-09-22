@@ -174,7 +174,7 @@ def train_agent(args):
     action_shape = (action_dim,)
     print("obs", obs_shape)
     print("act", action_shape)
-    policy = TQC(state_dim, action_dim, max_action, args)    
+    policy = SAC(state_dim, action_dim, max_action, args)    
     replay_buffer = ReplayBuffer(obs_shape, action_shape, int(args.buffer_size), args.image_pad, args.device)
     total_timesteps = 0
     timesteps_since_eval = 0
@@ -186,9 +186,9 @@ def train_agent(args):
     evaluations = []
     tb_update_counter = 0
     # TODO: evaluate 
-    evaluations.append(evaluate_policy(policy, writer, total_timesteps, args, env))
-    save_model = file_name + '-{}reward_{:.2f}-agent{}'.format(episode_num, evaluations[-1], args.policy) 
-    policy.save(save_model)
+    #evaluations.append(evaluate_policy(policy, writer, total_timesteps, args, env))
+    #save_model = file_name + '-{}reward_{:.2f}-agent{}'.format(episode_num, evaluations[-1], args.policy) 
+    #policy.save(save_model)
     done_counter =  deque(maxlen=100)
     while total_timesteps <  args.max_timesteps:
         tb_update_counter += 1
