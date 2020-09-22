@@ -1,3 +1,3 @@
 # kuka_project
 
-![] (robot.gif)
+![til](https://github.com/ChrisProgramming2018/kuka_project/blob/master/robot.gif)
