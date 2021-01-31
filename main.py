@@ -1,70 +1,72 @@
-# Copyright 2020
-# Author: Christian Leininger <info2016frei@gmail.com>
-
-import os
 import sys
-
-import time
-import random
 import numpy as np
-import argparse
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.autograd import Variable
-from collections import deque
-from datetime import datetime
-from train import train_agent
+import scipy.io as sio
+import cv2
 
 
-def main(arg):
-    """ Starts different tests
-    Args:
-        param1(args): args
+def create_normal(d_im):
+    d_im = d_im.astype("float64")
+    data_type = "float64"
+    normals = np.zeros((d_im.shape[0],d_im.shape[1], 2), dtype=data_type)
+    h , w, o = normals.shape
+    for i in range(1,w-1):
+        for j in range(1, h-1):
+            v1 = np.array([d_im[j,i], d_im[j-1,i]], dtype=data_type)
+            v2 = np.array([d_im[j,i], d_im[j,i-1]], dtype=data_type)
+            d = np.cross(v1, v2)
+            if d != 0:
+                n = d / np.sqrt((np.sum(d**2)))
+            else:
+                n = d
+            normals[j,i,:] = n   # changed n to d
+    return normals
+
+def angle_to_color(angle):
+    M_PI = np.pi
+    red   =  np.sin(angle)
+    green =  np.sin(angle + 2*M_PI / 3.)
+    blue  =   np.sin(angle + 4*M_PI / 3.)
+    return red, green, blue
+
+def get_angle(real, imag):
+    z = complex(real, imag)
+    angle = np.angle(z, deg=True)
+    if angle < 0:
+        angle += 360
+    return angle
+
+def create_surface_normal(d_im):
     """
-    path = arg.locexp
-    # experiment_name = args.experiment_name
-    res_path = os.path.join(path, "results")
-    if not os.path.exists(res_path):
-        os.makedirs(res_path)
-    dir_model = os.path.join(path, "pytorch_models")
-    if arg.save_model and not os.path.exists(dir_model):
-        os.makedirs(dir_model)
-    print("Created model dir {} ".format(dir_model))
-    train_agent(arg)
+    0 is black 255 white
+    """
+    data_type = "float64"
+    color_normal = np.zeros((d_im.shape[0],d_im.shape[1],3), dtype=data_type)
+    h , w, d = d_im.shape
+    for i in range(w):
+        for j in range(h):
+            angle = get_angle(d_im[j,i, 0], d_im[j,i, 1])
+            r,g, b = angle_to_color(angle)
+            color_normal[j,i, 0] = r
+            color_normal[j,i, 1] = g
+            color_normal[j,i, 2] = b
+
+    return color_normal
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--env-name', default="kuka_block_grasping-v0", type=str, help='Name of a environment (set it to any Continous environment you want')
-    parser.add_argument('--seed', default=2, type=int, help='Random seed')
-    parser.add_argument('--start_timesteps', default=100, type=int)
-    parser.add_argument('--eval_freq', default=1e4, type=int)  # How often the evaluation step is performed (after how many timesteps)
-    parser.add_argument('--max_timesteps', default=7e6, type=int)               # Total number of iterations/timesteps
-    parser.add_argument('--buffer_size', default=1e5, type=int)               # 
-    parser.add_argument('--save_model', default=True, type=bool)     # Boolean checker whether or not to save the pre-trained model
-    parser.add_argument('--lr_alpha', default=3e-4, type=float)
-    parser.add_argument('--lr_actor', default=1e-4, type=float)      # Exploration noise - STD value of exploration Gaussian noise
-    parser.add_argument('--lr_critic', default=1e-4, type=float)      # Exploration noise - STD value of exploration Gaussian noise
-    parser.add_argument('--lr_decoder', default=1e-4, type=float)      # Divide by 5
-    parser.add_argument('--batch_size', default= 512, type=int)      # Size of the batch
-    parser.add_argument('--discount', default=0.99, type=float)      # Discount factor gamma, used in the calculation of the total discounted reward
-    parser.add_argument('--tau', default=0.005, type= float)        # Target network update rate
-    parser.add_argument("--n_quantiles", default=25, type=int)
-    parser.add_argument("--top_quantiles_to_drop_per_net", default=2, type=int)
-    parser.add_argument("--n_nets", default=5, type=int)
-    parser.add_argument('--tensorboard_freq', default=500, type=int)    # every nth episode write in to tensorboard
-    parser.add_argument('--device', default='cuda', type=str)    # amount of qtarget nets
-    parser.add_argument('--reward_scalling', default=1, type=int)    # amount of qtarget nets
-    parser.add_argument('--max_episode_steps', default=50, type=int)    # amount of qtarget nets
-    parser.add_argument('--history_length', default=3, type=int)     # Maximum value of the Gaussian noise added to the actions (policy)
-    parser.add_argument('--image_pad', default=4, type=int)     # Maximum value of the Gaussian noise added to the actions (policy)
-    parser.add_argument('--size', default=84, type=int, help="size of the image of the simulator")     #  Idx for the replay buffer for the samples of the actor update 
-    parser.add_argument('--actor_clip_gradient', default=1., type=float)     # Maximum value of the Gaussian noise added to the actions (policy)
-    parser.add_argument('--locexp', type=str)     # Maximum value of the Gaussian noise added to the actions (policy)
-    parser.add_argument('--debug', default=False, type=bool)     # Maximum value of the Gaussian noise added to the actions (policy)
-    parser.add_argument('--policy', default="TCQ", type=str)
-    parser.add_argument('--repeat_update', default=1, type=int)         # Number of iterations to wait before the policy network (Actor model) is updated
-    parser.add_argument('--update_beta_freq', default=1, type=int) 
-    arg = parser.parse_args()
-    main(arg)
+d1 = cv2.imread("depth_kitchen_d1.png", 0)
+d1_n = (d1 - d1.min()) / (d1.max() - d1.min())
+d1_n_255 = d1_n * 255
+depth = d1_n_255.astype(np.uint8)
+cv2.imshow("depth", depth)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+print(depth.shape)
+res = create_normal(depth)
+color_norm = create_surface_normal(res)
+cv2.imshow("la", color_norm)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+cv2.imwrite("normal_kitchen_d1.png", color_norm)
+
+
+
